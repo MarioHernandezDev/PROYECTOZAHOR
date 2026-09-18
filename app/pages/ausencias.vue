@@ -46,6 +46,9 @@ const calcularAusencia = async () => {
   buscando.value = true
   const analisis = []
 
+  // Lista de códigos que queremos detectar como guardias o servicios especiales en esa hora
+  const codigosEspeciales = ['G', 'GUARDIA', '55 AÑOS', 'RP', 'COORD', 'BB', 'TDE', 'STEAM', 'TL']
+
   // Recorremos cada hora seleccionada para ver el impacto
   for (const horaNum of [...horasSeleccionadas.value].sort((a, b) => a - b)) {
     // 0. Obtener el ID del tramo horario correspondiente
@@ -70,7 +73,7 @@ const calcularAusencia = async () => {
       .eq('profesor_id', profesorAusenteId.value)
       .eq('tramo_id', tramoId)
 
-    // 2. Buscar Profesores que están de GUARDIA a esa misma hora
+    // 2. Buscar Profesores que tienen asignados esos códigos especiales a esa hora
     const { data: profesEnGuardia } = await supabase
       .from('clases')
       .select(`
@@ -78,9 +81,9 @@ const calcularAusencia = async () => {
         asignaturas!inner(codigo)
       `)
       .eq('tramo_id', tramoId)
-      .ilike('asignaturas.codigo', '%GUARDIA%')
+      .in('asignaturas.codigo', codigosEspeciales)
 
-    // Filtrar para eliminar duplicados si un profe tiene guardia de media hora
+    // Filtrar para eliminar duplicados y conservar el profesor junto con su código/etiqueta
     const guardiasUnicas = []
     const idsGuardiaVistos = new Set()
     
@@ -88,7 +91,11 @@ const calcularAusencia = async () => {
       profesEnGuardia.forEach(item => {
         if (item.profesores && !idsGuardiaVistos.has(item.profesores.id)) {
           idsGuardiaVistos.add(item.profesores.id)
-          guardiasUnicas.push(item.profesores)
+          guardiasUnicas.push({
+            id: item.profesores.id,
+            nombre: item.profesores.nombre,
+            etiqueta: item.asignaturas.codigo
+          })
         }
       })
     }
@@ -271,7 +278,7 @@ const toggleHora = (h) => {
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-xs font-black uppercase text-amber-950 tracking-wider">
-                    Profesores de Guardia
+                    Guardias / Servicios
                   </span>
                   <span class="text-xs font-black bg-amber-200 text-amber-950 px-2 py-0.5 rounded-md">
                     {{ item.profesGuardia.length }}
@@ -282,13 +289,16 @@ const toggleHora = (h) => {
                   <span 
                     v-for="p in item.profesGuardia" 
                     :key="p.id"
-                    class="px-3 py-1.5 bg-amber-300 border border-amber-400 text-amber-950 font-black text-xs rounded-xl shadow-2xs"
+                    class="px-3 py-1.5 bg-amber-300 border border-amber-400 text-amber-950 font-black text-xs rounded-xl shadow-2xs flex items-center gap-1.5"
                   >
-                    {{ p.nombre }}
+                    <span>{{ p.nombre }}</span>
+                    <span class="bg-amber-950 text-amber-100 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">
+                      {{ p.etiqueta }}
+                    </span>
                   </span>
                 </div>
                 <p v-else class="text-xs font-bold text-amber-800/80 italic mt-1">
-                  Nadie tiene hora de guardia asignada.
+                  Nadie tiene asignada guardia o servicio a esta hora.
                 </p>
               </div>
             </div>
