@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 const supabase = useSupabaseClient()
 
@@ -51,7 +51,8 @@ const cargarHorarioCurso = async (cursoId) => {
       es_media_hora,
       posicion_media_hora,
       tramos_horarios!inner(dia_semana, hora_num),
-      asignaturas(codigo, nombre, color_hex)
+      asignaturas(id, codigo, nombre, color_hex),
+      profesores(nombre)
     `)
     .eq('curso_id', cursoId)
 
@@ -73,7 +74,7 @@ const cargarHorarioCurso = async (cursoId) => {
 
       // Evitar duplicados exactos en la misma celda/posición
       const yaExiste = clasesMapa.value[key].some(
-        c => c.asignaturas?.codigo === cod && c.posicion_media_hora === item.posicion_media_hora
+        c => c.asignaturas?.codigo === cod && c.posicion_media_hora === item.posicion_media_hora && c.profesores?.nombre === item.profesores?.nombre
       )
 
       if (!yaExiste) {
@@ -97,184 +98,91 @@ watch(cursoSeleccionado, (nuevoId) => {
   }
 })
 
+const etapaCurso = computed(() => cursos.value.find(c => c.id === cursoSeleccionado.value)?.etapa)
+const rangoHora = (h) => horaRango(h, etapaCurso.value)
+
 const getClasesCelda = (diaId, horaNum) => {
   return clasesMapa.value[`${diaId}-${horaNum}`] || []
 }
 </script>
 
 <template>
-  <div class="max-w-xl mx-auto px-4 py-6 font-sans text-zinc-900 md:max-w-6xl">
-    
-    <header class="mb-8">
-      <div class="flex flex-col gap-5">
-        <div class="border-l-4 border-zinc-900 pl-4">
-          <h1 class="text-3xl font-black tracking-tight text-zinc-900">Horario de Cursos</h1>
-          <p class="text-zinc-600 font-medium text-sm mt-0.5">Distribución semanal por grupo / aula</p>
-        </div>
+  <div class="max-w-xl mx-auto md:max-w-6xl font-sans text-zinc-900">
 
-        <div v-if="!cargando && cursos.length" class="w-full">
-          <label for="curso" class="block text-xs font-black uppercase text-zinc-700 tracking-wider mb-2">
-            Curso / Grupo
-          </label>
-          <div class="relative">
-            <select 
-              id="curso"
-              v-model="cursoSeleccionado" 
-              class="w-full appearance-none bg-white border-2 border-zinc-300 text-zinc-900 font-black rounded-2xl px-5 py-4 text-lg focus:border-zinc-900 focus:outline-none transition-all cursor-pointer shadow-sm"
-            >
-              <option :value="null" disabled>
-                -- Seleccionar grupo / curso --
-              </option>
-              <option v-for="c in cursos" :key="c.id" :value="c.id">
-                {{ c.nombre }} <template v-if="c.etapa">({{ c.etapa }})</template>
-              </option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-6 text-zinc-800">
-              <svg width="14" height="9" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
+    <header class="mb-6">
+      <h1 class="text-3xl font-black tracking-tight">Cursos</h1>
+      <p class="text-zinc-600 font-semibold mt-1">Elige un curso y mira su semana</p>
     </header>
 
-    <div v-if="cargando" class="flex justify-center py-12">
-      <p class="text-base font-bold text-zinc-700 animate-pulse">Cargando grupos y aulas...</p>
-    </div>
-
-    <div v-else-if="!cursoSeleccionado" class="bg-zinc-100 rounded-3xl p-8 text-center border-2 border-dashed border-zinc-300 my-8">
-      <div class="w-12 h-12 bg-zinc-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 font-black text-xl">
-        ?
+    <div v-if="!cargando && cursos.length" class="mb-6">
+      <div class="relative">
+        <select v-model="cursoSeleccionado"
+          class="w-full appearance-none bg-white border border-zinc-300 shadow-sm text-zinc-900 font-black rounded-full pl-6 pr-12 h-16 text-lg focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          <option :value="null" disabled>Elegir curso…</option>
+          <option v-for="c in cursos" :key="c.id" :value="c.id">{{ cursoLargo(c) }}</option>
+        </select>
+        <svg class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2" width="16" height="10" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
       </div>
-      <h3 class="text-xl font-black text-zinc-900 mb-1">Ningún curso seleccionado</h3>
-      <p class="text-sm font-semibold text-zinc-600 max-w-xs mx-auto">
-        Despliega la lista de arriba y elige una clase para ver su horario semanal.
-      </p>
     </div>
 
-    <div v-else-if="cargandoHorario" class="flex justify-center py-12">
-      <p class="text-base font-bold text-zinc-700 animate-pulse">Obteniendo horario de la clase...</p>
+    <p v-if="cargando" class="text-center py-12 font-bold animate-pulse">Cargando…</p>
+
+    <div v-else-if="!cursoSeleccionado" class="bg-white rounded-3xl p-8 text-center border border-dashed border-zinc-300">
+      <div class="w-20 h-20 mx-auto mb-3 rounded-full bg-zinc-100 text-zinc-700 flex items-center justify-center"><Icono name="cursos" :size="38" /></div>
+      <p class="text-xl font-black">Elige el curso que quieres ver</p>
     </div>
+
+    <p v-else-if="cargandoHorario" class="text-center py-12 font-bold animate-pulse">Buscando el horario…</p>
 
     <div v-else>
-      <div class="block md:hidden">
-        <div class="grid grid-cols-2 gap-3 mb-6">
-          <button
-            v-for="dia in dias"
-            :key="dia.id"
-            @click="diaMovilActivo = dia.id"
-            :class="[
-              'py-4 px-3 rounded-2xl font-black text-base transition-all text-center border-2 uppercase tracking-wide',
-              diaMovilActivo === dia.id 
-                ? 'bg-zinc-900 border-zinc-900 text-white shadow-md' 
-                : 'bg-white border-zinc-300 text-zinc-700 hover:border-zinc-400'
-            , dia.nombre === 'Viernes' ? 'col-span-2' : '']"
-          >
-            {{ dia.nombre }}
+      <!-- ===== Móvil: un día cada vez ===== -->
+      <div class="md:hidden">
+        <div class="grid grid-cols-5 gap-2 mb-5">
+          <button v-for="dia in dias" :key="dia.id" @click="diaMovilActivo = dia.id"
+            :class="['h-14 rounded-full font-black text-base transition-colors',
+              diaMovilActivo === dia.id ? 'bg-zinc-900 text-white' : 'bg-white border border-zinc-200 text-zinc-700 active:bg-zinc-100']">
+            {{ dia.nombre.slice(0, 3) }}
           </button>
         </div>
+        <p class="text-lg font-black mb-3">{{ dias[diaMovilActivo - 1].nombre }}</p>
 
-        <div class="space-y-5">
-          <div 
-            v-for="hora in horas" 
-            :key="hora" 
-            class="bg-white rounded-3xl p-4 border-2 border-zinc-200 shadow-xs"
-          >
-            <div class="flex items-center justify-between border-b border-zinc-200 pb-2 mb-3">
-              <span class="text-sm font-black text-zinc-800 uppercase tracking-wider">
-                {{ hora }}ª Sesión
-              </span>
-            </div>
-
-            <div v-if="getClasesCelda(diaMovilActivo, hora).length" class="grid gap-2 grid-cols-1">
-              <div 
-                v-for="clase in getClasesCelda(diaMovilActivo, hora)" 
-                :key="clase.id"
-                class="p-4 rounded-2xl border-2 flex items-start justify-between gap-3"
-                :style="{ 
-                  backgroundColor: (clase.asignaturas?.color_hex || '#18181b') + '15',
-                  borderColor: clase.asignaturas?.color_hex || '#18181b'
-                }"
-              >
-                <div class="flex flex-col">
-                  <div v-if="clase.es_media_hora" class="mb-1">
-                    <span class="text-[10px] font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded-md">
-                      30 min (Bloque {{ clase.posicion_media_hora || 1 }})
-                    </span>
-                  </div>
-                  
-                  <span class="text-lg font-black leading-tight text-zinc-950">
-                    {{ clase.asignaturas?.nombre || clase.asignaturas?.codigo }}
-                  </span>
-                </div>
-
-                <div 
-                  class="w-6 h-6 rounded-full flex-none mt-1 border border-black/10"
-                  :style="{ backgroundColor: clase.asignaturas?.color_hex || '#18181b' }"
-                ></div>
+        <div class="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
+          <template v-for="hora in horas" :key="hora">
+            <div v-if="hora === 4" class="p-3 bg-zinc-50 border-t border-zinc-200"><Recreo /></div>
+            <div :class="['grid grid-cols-[4.25rem_1fr] gap-3 p-3 items-start', hora !== 1 ? 'border-t border-zinc-200' : '']">
+              <div class="text-center pt-2">
+                <p class="text-2xl font-black leading-none">{{ hora }}ª</p>
+                <p class="text-xs font-bold text-zinc-600 mt-1">{{ (rangoHora(hora) || '9:00').split('–')[0] }}</p>
+              </div>
+              <CeldaClase v-if="getClasesCelda(diaMovilActivo, hora).length" :items="getClasesCelda(diaMovilActivo, hora)" modo="curso" />
+              <div v-else class="py-3 px-1 text-base font-bold text-zinc-500">
+                {{ rangoHora(hora) ? 'Sin clase' : 'Aún no empiezan (9:00)' }}
               </div>
             </div>
-
-            <div v-else class="py-3 px-4 bg-zinc-100/70 rounded-2xl border border-dashed border-zinc-300">
-              <span class="text-xs font-extrabold text-zinc-500 uppercase tracking-wider">Sin clase / Descanso</span>
-            </div>
-          </div>
+          </template>
         </div>
       </div>
 
-      <div class="hidden md:block bg-white rounded-3xl border-2 border-zinc-200 overflow-hidden shadow-xs">
-        <div class="grid grid-cols-6 bg-zinc-100 border-b-2 border-zinc-200">
-          <div class="p-5 text-center text-xs font-black uppercase tracking-wider text-zinc-700">Sesión</div>
-          <div v-for="dia in dias" :key="dia.id" class="p-5 text-center text-xs font-black uppercase tracking-wider text-zinc-900">
-            {{ dia.nombre }}
-          </div>
+      <!-- ===== Ordenador: semana entera ===== -->
+      <div class="hidden md:block bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div class="grid grid-cols-[6rem_repeat(5,1fr)] bg-zinc-100 border-b border-zinc-200">
+          <div></div>
+          <div v-for="dia in dias" :key="dia.id" class="p-4 text-center text-base font-black">{{ dia.nombre }}</div>
         </div>
-
-        <div v-for="hora in horas" :key="hora" class="grid grid-cols-6 border-b border-zinc-200 last:border-b-0">
-          <div class="p-4 flex items-center justify-center bg-zinc-50 border-r border-zinc-200">
-            <span class="text-xl font-black text-zinc-700">{{ hora }}ª</span>
-          </div>
-
-          <div 
-            v-for="dia in dias" 
-            :key="dia.id" 
-            class="p-2 border-l border-zinc-200 min-h-[120px] bg-white flex flex-col justify-stretch"
-          >
-            <div 
-              v-if="getClasesCelda(dia.id, hora).length" 
-              :class="['h-full grid gap-1.5', getClasesCelda(dia.id, hora).length > 1 ? 'grid-cols-2' : 'grid-cols-1']"
-            >
-              <div 
-                v-for="clase in getClasesCelda(dia.id, hora)" 
-                :key="clase.id"
-                class="p-2.5 rounded-xl border-2 flex flex-col justify-between"
-                :style="{ 
-                  backgroundColor: (clase.asignaturas?.color_hex || '#18181b') + '15',
-                  borderColor: clase.asignaturas?.color_hex || '#18181b'
-                }"
-              >
-                <div>
-                  <span 
-                    v-if="clase.es_media_hora" 
-                    class="inline-block text-[9px] font-black uppercase bg-zinc-900 text-white px-1.5 py-0.5 rounded mb-1"
-                  >
-                    1/2h
-                  </span>
-                  <p class="text-xs font-black leading-snug text-zinc-950">
-                    {{ clase.asignaturas?.nombre || clase.asignaturas?.codigo }}
-                  </p>
-                </div>
-              </div>
+        <template v-for="hora in horas" :key="hora">
+          <div v-if="hora === 4" class="p-2 bg-zinc-50 border-t border-zinc-200"><Recreo /></div>
+          <div class="grid grid-cols-[6rem_repeat(5,1fr)] border-t border-zinc-200 first:border-t-0">
+            <div class="p-3 flex flex-col items-center justify-center bg-zinc-50">
+              <span class="text-2xl font-black">{{ hora }}ª</span>
+              <span class="text-xs font-bold text-zinc-600">{{ rangoHora(hora) || '—' }}</span>
             </div>
-
-            <div v-else class="h-full flex items-center justify-center">
-              <span class="text-xs font-bold text-zinc-400">—</span>
+            <div v-for="dia in dias" :key="dia.id" class="p-2 border-l border-zinc-200 min-h-[5.5rem]">
+              <CeldaClase v-if="getClasesCelda(dia.id, hora).length" :items="getClasesCelda(dia.id, hora)" modo="curso" compacto />
+              <span v-else class="block text-center text-zinc-300 font-bold pt-5">—</span>
             </div>
           </div>
-        </div>
+        </template>
       </div>
-
     </div>
   </div>
 </template>

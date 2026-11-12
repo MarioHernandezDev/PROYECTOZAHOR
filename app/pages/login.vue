@@ -18,15 +18,13 @@ const handleLogin = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-100 flex items-center justify-center p-4 font-sans text-zinc-900">
-    <div class="bg-white p-8 rounded-3xl border-2 border-zinc-200 shadow-sm w-full max-w-sm space-y-6">
+  <div class="min-h-dvh bg-zinc-100 flex items-center justify-center p-4 font-sans text-zinc-900">
+    <div class="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm shadow-sm w-full max-w-sm space-y-6">
       
       <div class="text-center space-y-2">
-        <div class="w-12 h-12 bg-zinc-900 text-white rounded-2xl flex items-center justify-center font-black text-xl mx-auto shadow-sm">
-          H
-        </div>
-        <h1 class="text-2xl font-black tracking-tight text-zinc-900">Acceso Privado</h1>
-        <p class="text-xs font-bold uppercase tracking-wider text-zinc-500">Gestor de Horarios</p>
+        <Logo :size="56" class="mx-auto" />
+        <h1 class="text-2xl font-black tracking-tight text-zinc-900">Gestor Cole</h1>
+        <p class="text-xs font-bold uppercase tracking-wider text-zinc-600">CEIP El Zahor</p>
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-4">
@@ -49,7 +47,7 @@ const handleLogin = () => {
 
         <button 
           type="submit"
-          class="w-full py-4 bg-zinc-900 text-white font-black text-sm uppercase tracking-wider rounded-2xl hover:bg-zinc-800 transition-all shadow-sm active:scale-[0.98]"
+          class="w-full py-4 bg-zinc-900 text-white font-black text-sm uppercase tracking-wider rounded-full hover:bg-zinc-800 transition-all shadow-sm active:scale-[0.98]"
         >
           Entrar
         </button>

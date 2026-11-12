@@ -1,0 +1,21 @@
+/* Ajustes para móvil (pensado sobre todo para iPhone / Safari) */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; font-size: 112.5%; } /* letra base 18px: más cómoda de leer */
+body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; background: #fafafa; }
+button, a, select, label, input[type='checkbox'], input[type='date'] { touch-action: manipulation; }
+button { -webkit-appearance: none; appearance: none; cursor: pointer; }
+
+/* Safari hace zoom al tocar un campo con letra menor de 16px: lo evitamos */
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px !important; }
+}
+/* Los select/date de iOS: quitar estilo nativo raro y que ocupen bien */
+select, input[type='date'] { -webkit-appearance: none; appearance: none; min-height: 3rem; }
+input[type='date'] { display: block; text-align: left; }
+input[type='color'] { -webkit-appearance: none; appearance: none; }
+
+/* Zonas seguras del iPhone */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.pb-modal { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
+.toast-pos { bottom: calc(6rem + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) { .toast-pos { bottom: 1.5rem; } }
+.modal-scroll { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
