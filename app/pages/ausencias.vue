@@ -88,12 +88,23 @@ const resultadoAusencia = computed(() => {
       (horaNum !== 1 || etapaProf.value.get(p.id) === 'SECUNDARIA') // a 1ª hora solo está el profesorado de ESO
     )
 
+    // Resto del profesorado (con clase u otra ocupación): también se les puede avisar, pero se indica qué tienen
+    const yaMostrados = new Set([ausenteId, ...profesGuardia.map(p => p.id), ...profesLibres.map(p => p.id)])
+    const profesOcupados = profesores.value.filter(p => !yaMostrados.has(p.id)).map(p => {
+      const cs = enTramo.filter(c => c.profesor_id === p.id)
+      const detalle = cs.length
+        ? cs.map(c => [asigPorId.value[c.asignatura_id]?.nombre, cursoLargo(c.cursos)].filter(Boolean).join(' · ')).join(' + ')
+        : 'No está a esta hora'
+      return { ...p, detalle, conClase: cs.length > 0 }
+    })
+
     const etapa = afectadas[0]?.cursos?.etapa || etapaProf.value.get(ausenteId) || 'SECUNDARIA'
     return {
       horaNum,
       clasesAfectadas: afectadas,
       profesGuardia,
       profesLibres,
+      profesOcupados,
       rango: horaRango(horaNum, etapa),
       sinClaseEtapa: !horaRango(horaNum, etapa)
     }
@@ -254,6 +265,28 @@ const toggleHora = (h) => {
               <p v-else class="text-sm font-semibold text-zinc-600 bg-zinc-50 rounded-2xl px-4 py-3">No hay profesores libres a esta hora.</p>
             </div>
           </div>
+
+          <!-- Resto del profesorado: se puede avisar aunque tenga clase -->
+          <details v-if="item.profesOcupados.length" class="group">
+            <summary class="cursor-pointer list-none flex items-center justify-between rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-black">
+              <span>Resto del profesorado (con clase u otra ocupación)</span>
+              <span class="text-xs font-black bg-white text-zinc-700 rounded-full px-2.5 py-0.5">{{ item.profesOcupados.length }}</span>
+            </summary>
+            <p class="text-xs font-bold text-amber-800 bg-amber-50 rounded-xl px-3 py-2 mt-2">Ojo: estas personas no están libres a esta hora. Avísales solo si ya lo has hablado con ellas.</p>
+            <div class="flex flex-col gap-2.5 mt-3">
+              <component :is="enlaceWhatsapp(p, item) ? 'a' : 'div'" v-for="p in item.profesOcupados" :key="p.id"
+                :href="enlaceWhatsapp(p, item) || undefined" target="_blank" rel="noopener"
+                :class="['flex items-center justify-between gap-3 rounded-full pl-6 pr-3 min-h-[3.5rem] py-2',
+                  p.telefono ? 'bg-white text-zinc-900 ring-1 ring-zinc-300 active:bg-zinc-100' : 'bg-zinc-100 text-zinc-600']">
+                <span class="min-w-0">
+                  <span class="block font-black text-base leading-tight truncate">{{ p.nombre }}</span>
+                  <span class="block text-xs font-bold text-zinc-500 leading-tight truncate">{{ p.detalle }}</span>
+                </span>
+                <span v-if="p.telefono" class="shrink-0 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center"><Icono name="whatsapp" :size="22" /></span>
+                <span v-else class="shrink-0 text-xs font-bold pr-3">sin móvil</span>
+              </component>
+            </div>
+          </details>
         </div>
       </div>
 
