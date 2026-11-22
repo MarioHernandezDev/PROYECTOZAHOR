@@ -2,8 +2,8 @@
 // Los nombres coinciden con la columna "nombre" de la tabla profesores.
 // "J. Eri" y "J. Fran" vigilan pero no están en la lista de quienes sustituyen.
 export const PATIOS = [
-  { id: 'arriba', nombre: 'Patio de arriba' },
-  { id: 'abajo', nombre: 'Patio de abajo' }
+  { id: 'arriba', nombre: 'Arriba' },
+  { id: 'abajo', nombre: 'Abajo' }
 ]
 
 export const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
@@ -11,16 +11,16 @@ export const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
 // Índice 0 = lunes … 4 = viernes
 export const TURNOS = {
   arriba: [
-    ['Deli', 'Dori'],
+    ['Deli', 'J. Manuel'],
     ['J. Eri', 'Luz', 'Alicia'],
-    ['Deli', 'Dori', 'Paqui'],
+    ['Deli', 'Alicia', 'Paqui'],
     ['J. Eri', 'Luz', 'Vanessa'],
     ['Vanessa', 'Paqui', 'J. Fran']
   ],
   abajo: [
-    ['Yolanda', 'J. Manuel', 'Bibiana'],
+    ['Yolanda', 'Dori', 'Bibiana'],
     ['Tere', 'Belén', 'J. Manuel', 'Carmen'],
-    ['Tere', 'Fany', 'Ester', 'Alicia'],
+    ['Tere', 'Fany', 'Ester', 'Dori'],
     ['Belén', 'Ester', 'Fany', 'Carmen'],
     ['Yolanda', 'Bibiana', 'Danielle']
   ]

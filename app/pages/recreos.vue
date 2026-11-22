@@ -9,7 +9,7 @@ const aISO = (d) => `${d.getFullYear()}-${dosDig(d.getMonth() + 1)}-${dosDig(d.g
 const hoy = aISO(new Date())
 const fechaDe = (iso) => new Date(iso + 'T12:00:00')
 const fechaBonita = (iso) => fechaDe(iso).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
-const fechaCorta = (iso) => fechaDe(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+const fechaCorta = (iso, conDia) => fechaDe(iso).toLocaleDateString('es-ES', conDia ? { weekday: 'short', day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short' })
 
 const fecha = ref(hoy)
 const patio = ref('arriba')
@@ -121,11 +121,13 @@ const moverFecha = (n) => { const d = fechaDe(fecha.value); d.setDate(d.getDate(
           <p class="text-xs font-black uppercase tracking-wider text-zinc-700 mb-2">1. ¿Qué día?</p>
           <div class="flex items-center gap-2">
             <button @click="moverFecha(-1)" class="w-12 h-12 shrink-0 rounded-full bg-zinc-100 flex items-center justify-center"><Icono name="flecha-izq" :size="22" :stroke="2.5" /></button>
-            <input type="date" v-model="fecha" class="flex-1 min-w-0 bg-zinc-100 rounded-full px-5 h-12 font-black text-base focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            <div class="relative flex-1 min-w-0 bg-zinc-100 rounded-full h-12 flex items-center justify-center font-black text-base first-letter:uppercase">
+              {{ fechaCorta(fecha, true) }}
+              <input type="date" v-model="fecha" class="absolute inset-0 w-full h-full opacity-0" aria-label="Elegir fecha" />
+            </div>
             <button @click="moverFecha(1)" class="w-12 h-12 shrink-0 rounded-full bg-zinc-100 flex items-center justify-center"><Icono name="flecha-der" :size="22" :stroke="2.5" /></button>
           </div>
-          <p class="text-sm font-black text-zinc-700 mt-2 first-letter:uppercase">{{ fechaBonita(fecha) }}
-            <button v-if="fecha !== hoy" @click="fecha = hoy" class="ml-2 text-xs underline text-sky-700 normal-case">ir a hoy</button></p>
+          <button v-if="fecha !== hoy" @click="fecha = hoy" class="mt-2 text-xs font-black underline text-sky-700">ir a hoy</button>
         </div>
 
         <p v-if="esFinde" class="bg-zinc-100 rounded-2xl p-4 font-bold text-zinc-600">Ese día es fin de semana.</p>
@@ -136,7 +138,7 @@ const moverFecha = (n) => { const d = fechaDe(fecha.value); d.setDate(d.getDate(
             <div class="grid grid-cols-2 gap-2">
               <button v-for="p in PATIOS" :key="p.id" @click="patio = p.id"
                 :class="['py-4 rounded-full font-black border-2', patio === p.id ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-zinc-50 text-zinc-800 border-zinc-200']">
-                {{ p.nombre }}
+                <span class="uppercase tracking-wide">{{ p.nombre }}</span>
               </button>
             </div>
           </div>
