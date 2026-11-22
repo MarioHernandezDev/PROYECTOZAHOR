@@ -6,7 +6,7 @@ export const GRUPOS = [
     items: [
       { to: '/refuerzos', txt: 'Refuerzos', ico: 'refuerzos', desc: 'Quién refuerza a qué curso', corta: 'Quién refuerza' },
       { to: '/sustituciones', txt: 'Sustituciones', ico: 'sustituciones', desc: 'Servicios de 8 a 9 y de 13:30 a 14:30', corta: 'Turnos 8–9 y 13:30' },
-      { to: '/recreos', txt: 'Recreos', ico: 'recreos', desc: 'Turnos de vigilancia', dev: true }
+      { to: '/recreos', txt: 'Recreos', ico: 'recreos', desc: 'Quién sustituye en el patio', corta: 'Patio arriba y abajo' }
     ]
   },
   {
